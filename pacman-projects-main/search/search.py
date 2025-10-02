@@ -228,8 +228,42 @@ def null_heuristic(state, problem=None):
 
 def a_star_search(problem, heuristic=null_heuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
-    "*** YOUR CODE HERE ***"
-    util.raise_not_defined()
+    # A* frontier holds (state, path_so_far, g_cost) and is prioritized by f = g + h.
+    # We perform goal testing when a node is popped from the frontier, which,
+    # together with a consistent heuristic, guarantees optimality.
+    frontier = util.PriorityQueue()
+
+    start_state = problem.get_start_state()
+    start_g_cost = 0
+    start_f_cost = start_g_cost + heuristic(start_state, problem)
+    frontier.push((start_state, [], start_g_cost), start_f_cost)
+
+    # Record best known g-cost to each state to prune dominated entries.
+    best_g_cost = {}
+
+    while not frontier.is_empty():
+        state, path, g_cost = frontier.pop()
+
+        # Discard outdated entries that are worse than a known path to this state.
+        if state in best_g_cost and g_cost > best_g_cost[state]:
+            continue
+
+        # Optimal goal detection (with consistent heuristic) when removing from frontier.
+        if problem.is_goal_state(state):
+            return path
+
+        best_g_cost[state] = g_cost
+
+        # Expand successors: compute new g and priority f = g + h.
+        for successor, action, step_cost in problem.get_successors(state):
+            new_g = g_cost + step_cost
+            # Only consider successor if we have not seen it or found a cheaper path to it.
+            if successor not in best_g_cost or new_g < best_g_cost[successor]:
+                f_priority = new_g + heuristic(successor, problem)
+                frontier.push((successor, path + [action], new_g), f_priority)
+
+    # If no solution is found, return an empty plan by convention.
+    return []
 
 # Abbreviations
 bfs = breadth_first_search
