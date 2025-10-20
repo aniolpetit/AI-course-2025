@@ -132,18 +132,18 @@ def depth_first_search(problem):
     print("Is the start a goal?", problem.is_goal_state(problem.get_start_state()))
     print("Start's successors:", problem.get_successors(problem.get_start_state()))
     """
-    # Frontier holds (state, path) pairs. Using a LIFO stack implements DFS.
+    # Frontier holds (state, path) pairs, using a LIFO stack implements DFS
     frontier = util.Stack()
     start_state = problem.get_start_state()
     frontier.push((start_state, []))
 
-    # Track visited states to avoid re-expansion (graph search).
+    # Track visited states to avoid re-expansion (graph search)
     visited = set()
 
     while not frontier.is_empty():
         state, path = frontier.pop()
 
-        # Goal test on pop ensures we return a valid action sequence as soon as found.
+        # Goal test on pop ensures we return a valid action sequence as soon as found
         if problem.is_goal_state(state):
             return path
 
@@ -151,24 +151,24 @@ def depth_first_search(problem):
             continue
         visited.add(state)
 
-        # Expand current state and push successors with their extended paths.
+        # Expand current state and push successors with their extended paths
         for successor, action, _ in problem.get_successors(state):
             if successor not in visited:
                 frontier.push((successor, path + [action]))
 
-    # No solution found (should not happen on provided mazes); return empty plan.
+    # No solution found, return empty plan
     return []
 
 
 
 def breadth_first_search(problem):
     """Search the shallowest nodes in the search tree first."""
-    # Frontier holds (state, path) pairs. Queue => FIFO for BFS.
+    # Frontier holds (state, path) pairs. Queue, FIFO for BFS
     frontier = util.Queue()
     start_state = problem.get_start_state()
     frontier.push((start_state, []))
 
-    # Track visited states to ensure each state is expanded at most once.
+    # Track visited states to ensure each state is expanded at most once
     visited = set()
 
     while not frontier.is_empty():
@@ -185,12 +185,12 @@ def breadth_first_search(problem):
             if successor not in visited:
                 frontier.push((successor, path + [action]))
 
-    # No solution found; return empty plan by convention.
+    # No solution found, return empty plan by convention
     return []
 
 def uniform_cost_search(problem):
     """Search the node of least total cost first."""
-    # Frontier holds (state, path, path_cost). Priority is path_cost.
+    # Frontier holds (state, path, path_cost). Priority is path_cost
     frontier = util.PriorityQueue()
     start_state = problem.get_start_state()
     frontier.push((start_state, [], 0), 0)
@@ -216,7 +216,7 @@ def uniform_cost_search(problem):
             if successor not in best_cost or new_cost < best_cost[successor]:
                 frontier.push((successor, path + [action], new_cost), new_cost)
 
-    # No solution found; return empty plan by convention.
+    # No solution found, return empty plan by convention
     return []
 
 def null_heuristic(state, problem=None):
@@ -228,9 +228,8 @@ def null_heuristic(state, problem=None):
 
 def a_star_search(problem, heuristic=null_heuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
-    # A* frontier holds (state, path_so_far, g_cost) and is prioritized by f = g + h.
-    # We perform goal testing when a node is popped from the frontier, which,
-    # together with a consistent heuristic, guarantees optimality.
+    # A* frontier holds (state, path_so_far, g_cost) and is prioritized by f = g + h
+    # We perform goal testing when a node is popped from the frontier, which, together with a consistent heuristic, guarantees optimality
     frontier = util.PriorityQueue()
 
     start_state = problem.get_start_state()
@@ -238,31 +237,31 @@ def a_star_search(problem, heuristic=null_heuristic):
     start_f_cost = start_g_cost + heuristic(start_state, problem)
     frontier.push((start_state, [], start_g_cost), start_f_cost)
 
-    # Record best known g-cost to each state to prune dominated entries.
+    # Record best known g-cost to each state to prune dominated entries
     best_g_cost = {}
 
     while not frontier.is_empty():
         state, path, g_cost = frontier.pop()
 
-        # Discard outdated entries that are worse than a known path to this state.
+        # Discard outdated entries that are worse than a known path to this state
         if state in best_g_cost and g_cost > best_g_cost[state]:
             continue
 
-        # Optimal goal detection (with consistent heuristic) when removing from frontier.
+        # Optimal goal detection (with consistent heuristic) when removing from frontier
         if problem.is_goal_state(state):
             return path
 
         best_g_cost[state] = g_cost
 
-        # Expand successors: compute new g and priority f = g + h.
+        # Expand successors: compute new g and priority f = g + h
         for successor, action, step_cost in problem.get_successors(state):
             new_g = g_cost + step_cost
-            # Only consider successor if we have not seen it or found a cheaper path to it.
+            # Only consider successor if we have not seen it or found a cheaper path to it
             if successor not in best_g_cost or new_g < best_g_cost[successor]:
                 f_priority = new_g + heuristic(successor, problem)
                 frontier.push((successor, path + [action], new_g), f_priority)
 
-    # If no solution is found, return an empty plan by convention.
+    # If no solution is found, return an empty plan by convention
     return []
 
 # Abbreviations

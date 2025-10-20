@@ -506,7 +506,7 @@ def food_heuristic(state, problem):
     """
     Your heuristic for the FoodSearchProblem goes here.
 
-    This heuristic must be consistent to ensure correctness.  First, try to come
+    This heuristic must be consistent to ensure correctness. First, try to come
     up with an admissible heuristic; almost all admissible heuristics will be
     consistent as well.
 
@@ -531,8 +531,48 @@ def food_heuristic(state, problem):
     problem.heuristic_info['wallCount']
     """
     position, food_grid = state
-    "*** YOUR CODE HERE ***"
-    return 0
+
+    # Convert remaining food to a list of coordinates for convenience.
+    foods = food_grid.as_list()
+    if not foods:
+        return 0
+
+    # Cache for maze distances across heuristic calls. We key by frozenset({p,q})
+    # so that distance lookups are symmetric and unique regardless of order.
+    cache = problem.heuristic_info.setdefault('maze_distance_cache', {})
+
+    def cached_maze_distance(p, q):
+        key = frozenset((p, q))
+        if key in cache:
+            return cache[key]
+        # Compute exact maze distance (shortest path length respecting walls) and cache it.
+        dist = maze_distance(p, q, problem.starting_game_state)
+        cache[key] = dist
+        return dist
+
+    # Strengthened lower bound: choose the farthest-apart pair of remaining foods and add the distance from current position to the nearer endpoint
+    # Intuition: any tour collecting all food must at least cover the distance between those farthest points, and it must also reach that "diameter" segment from the start
+    far_pair_dist = 0
+    far_pair_endpoints = None
+    # If only one food remains, just return the exact maze distance to it
+    if len(foods) == 1:
+        return cached_maze_distance(position, foods[0])
+
+    for f1, f2 in combinations(foods, 2):
+        d = cached_maze_distance(f1, f2)
+        if d > far_pair_dist:
+            far_pair_dist = d
+            far_pair_endpoints = (f1, f2)
+
+    # Distance from current position to the closer endpoint of the farthest pair.
+    to_segment = min(
+        cached_maze_distance(position, far_pair_endpoints[0]),
+        cached_maze_distance(position, far_pair_endpoints[1])
+    ) if far_pair_endpoints is not None else min(cached_maze_distance(position, f) for f in foods)
+
+    # Heuristic value is admissible and consistent as it is built from shortest-path
+    # (metric) distances that obey the triangle inequality.
+    return to_segment + far_pair_dist
 
 
 def simplified_corners_heuristic(state, problem):
