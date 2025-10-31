@@ -530,49 +530,35 @@ def food_heuristic(state, problem):
     Subsequent calls to this heuristic can access
     problem.heuristic_info['wallCount']
     """
-    position, food_grid = state
+     position, food_grid = state
 
-    # Convert remaining food to a list of coordinates for convenience.
-    foods = food_grid.as_list()
-    if not foods:
+    """
+    Heuristic rationale (admissible and consistent):
+    - We take the maximum (over remaining foods) of the shortest-path distance
+      from the current position of the pacman to each food. Any valid path must at least reach
+      the farthest remaining dot, so this value is a lower bound on the true
+      remaining cost (admissible). Using goal check on pop and a metric distance
+      keeps it consistent.
+    - Distances are cached in problem.heuristic_info to avoid recomputing across
+      states/branches; this does not affect correctness, only performance.
+    """
+
+    # If there is no food left, remaining cost is zero by definition.
+    if food_grid.count() == 0:
         return 0
 
-    # Cache for maze distances across heuristic calls. We key by frozenset({p,q})
-    # so that distance lookups are symmetric and unique regardless of order.
-    cache = problem.heuristic_info.setdefault('maze_distance_cache', {})
+    # Compute (and cache) the distance to each remaining food and keep the maximum.
+    max_distance = 0
+    for food_pos in food_grid.as_list():
+        cache_key = (position, food_pos)
+        if cache_key not in problem.heuristic_info:
+            # Exact shortest-path distance in the maze from position to food_pos.
+            problem.heuristic_info[cache_key] = maze_distance(position, food_pos, problem.starting_game_state)
+        distance = problem.heuristic_info[cache_key]
+        if distance > max_distance:
+            max_distance = distance
 
-    def cached_maze_distance(p, q):
-        key = frozenset((p, q))
-        if key in cache:
-            return cache[key]
-        # Compute exact maze distance (shortest path length respecting walls) and cache it.
-        dist = maze_distance(p, q, problem.starting_game_state)
-        cache[key] = dist
-        return dist
-
-    # Strengthened lower bound: choose the farthest-apart pair of remaining foods and add the distance from current position to the nearer endpoint
-    # Intuition: any tour collecting all food must at least cover the distance between those farthest points, and it must also reach that "diameter" segment from the start
-    far_pair_dist = 0
-    far_pair_endpoints = None
-    # If only one food remains, just return the exact maze distance to it
-    if len(foods) == 1:
-        return cached_maze_distance(position, foods[0])
-
-    for f1, f2 in combinations(foods, 2):
-        d = cached_maze_distance(f1, f2)
-        if d > far_pair_dist:
-            far_pair_dist = d
-            far_pair_endpoints = (f1, f2)
-
-    # Distance from current position to the closer endpoint of the farthest pair.
-    to_segment = min(
-        cached_maze_distance(position, far_pair_endpoints[0]),
-        cached_maze_distance(position, far_pair_endpoints[1])
-    ) if far_pair_endpoints is not None else min(cached_maze_distance(position, f) for f in foods)
-
-    # Heuristic value is admissible and consistent as it is built from shortest-path
-    # (metric) distances that obey the triangle inequality.
-    return to_segment + far_pair_dist
+    return max_distance
 
 
 def simplified_corners_heuristic(state, problem):
