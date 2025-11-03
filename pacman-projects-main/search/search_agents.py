@@ -530,7 +530,7 @@ def food_heuristic(state, problem):
     Subsequent calls to this heuristic can access
     problem.heuristic_info['wallCount']
     """
-     position, food_grid = state
+    position, food_grid = state
 
     """
     Heuristic rationale (admissible and consistent):
@@ -558,7 +558,7 @@ def food_heuristic(state, problem):
         if distance > max_distance:
             max_distance = distance
 
-    return max_distance
+    return max_distance
 
 
 def simplified_corners_heuristic(state, problem):
